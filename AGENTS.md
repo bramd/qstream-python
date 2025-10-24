@@ -1,7 +1,7 @@
 # QStream Python Library - AI Development Guide
 
 ## Project Overview
-Async Python library for BUVO QStream 2.0 ventilation fan control via HTTP API.
+Async Python library for BUVA QStream 2.0 ventilation fan control via HTTP API.
 Target use case: Home Assistant integration.
 
 ## Key Constraints

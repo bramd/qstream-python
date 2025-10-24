@@ -1,4 +1,4 @@
-"""Async Python library for BUVO QStream 2.0 ventilation fan control."""
+"""Async Python library for BUVA QStream 2.0 ventilation fan control."""
 
 from qstream.client import QStreamClient
 from qstream.models import QStreamStatus, ScheduleMode

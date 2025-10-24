@@ -1,4 +1,4 @@
-"""Async HTTP client for BUVO QStream 2.0 ventilation fans."""
+"""Async HTTP client for BUVA QStream 2.0 ventilation fans."""
 
 from datetime import datetime
 from typing import Self

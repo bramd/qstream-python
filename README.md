@@ -1,6 +1,6 @@
 # QStream Python Library
 
-Async Python library for controlling BUVO QStream 2.0 WiFi-enabled ventilation fans via their HTTP API.
+Async Python library for controlling BUVA QStream 2.0 WiFi-enabled ventilation fans via their HTTP API.
 
 ## Features
 

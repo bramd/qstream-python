@@ -1,7 +1,7 @@
 [project]
 name = "qstream"
 version = "0.1.0"
-description = "Async Python library for BUVO QStream 2.0 ventilation fan control"
+description = "Async Python library for BUVA QStream 2.0 ventilation fan control"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
@@ -28,4 +28,12 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-aiohttp>=1.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
 ]
