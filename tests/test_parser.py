@@ -70,3 +70,13 @@ def test_parse_status_invalid_format():
 
     assert "Missing required flow values" in str(exc_info.value)
     assert exc_info.value.raw_response == raw
+
+
+def test_parse_status_schedule_day_mode():
+    """Should parse status with schedule in DAY mode."""
+    raw = "TIMER INACTIVE SCHEDULE ON 15 MIN Qanalog 0% Qset 30% Qactual 30% DEMAND CONTROL ON DAY VALVE CLOSED"
+    status = parse_status(raw)
+
+    assert status.schedule_enabled is True
+    assert status.schedule_mode == ScheduleMode.DAY
+    assert status.schedule_remaining_minutes == 15

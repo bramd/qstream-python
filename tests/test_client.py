@@ -211,3 +211,176 @@ async def test_get_status_invalid_json(mock_session, mock_response):
         await client.get_status()
 
     assert exc_info.value.raw_response == "INVALID FORMAT"
+
+
+@pytest.mark.asyncio
+async def test_context_manager(mock_session, mock_response):
+    """Client should work as async context manager."""
+    raw = "TIMER INACTIVE SCHEDULE OFF Qanalog 0% Qset 20% Qactual 20% DEMAND CONTROL ON DAY VALVE CLOSED"
+    mock_session.get.return_value.__aenter__.return_value = mock_response(
+        json_data={"Value": raw}
+    )
+    mock_session.close = AsyncMock()
+
+    async with QStreamClient("192.168.1.100", session=mock_session) as client:
+        status = await client.get_status()
+        assert status.set_flow == 20
+
+    # Session should not be closed (not owned)
+    mock_session.close.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_context_manager_owned_session():
+    """Client should close owned session on exit."""
+    client = QStreamClient("192.168.1.100")
+
+    async with client:
+        # Create session manually for testing
+        client._session = AsyncMock(spec=aiohttp.ClientSession)
+        client._session.close = AsyncMock()
+
+    # Owned session should be closed
+    client._session.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_close_no_session():
+    """Client.close should handle case with no session."""
+    client = QStreamClient("192.168.1.100")
+    await client.close()  # Should not raise
+
+
+@pytest.mark.asyncio
+async def test_get_status_http_error(mock_session):
+    """Should raise QStreamConnectionError on HTTP error."""
+    error = aiohttp.ClientResponseError(
+        request_info=None,
+        history=None,
+        status=404
+    )
+    mock_session.get.side_effect = error
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamConnectionError) as exc_info:
+        await client.get_status()
+
+    assert "HTTP 404" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_get_status_unexpected_error(mock_session):
+    """Should raise QStreamResponseError on unexpected error."""
+    mock_session.get.side_effect = ValueError("Unexpected issue")
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamResponseError) as exc_info:
+        await client.get_status()
+
+    assert "Unexpected error" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_get_air_quality_invalid_value(mock_session, mock_response):
+    """Should raise QStreamResponseError on invalid AQI value."""
+    mock_session.get.return_value.__aenter__.return_value = mock_response(
+        json_data={"Value": "not_a_number"}
+    )
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamResponseError) as exc_info:
+        await client.get_air_quality()
+
+    assert "Invalid AQI value" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_get_datetime_invalid_format(mock_session, mock_response):
+    """Should raise QStreamResponseError on invalid datetime format."""
+    mock_session.get.return_value.__aenter__.return_value = mock_response(
+        json_data={"Value": "not a valid datetime"}
+    )
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamResponseError) as exc_info:
+        await client.get_datetime()
+
+    assert "Invalid datetime format" in str(exc_info.value)
+    assert exc_info.value.raw_response == "not a valid datetime"
+
+
+@pytest.mark.asyncio
+async def test_get_level_invalid_value(mock_session, mock_response):
+    """Should raise QStreamResponseError on invalid level value."""
+    mock_session.get.return_value.__aenter__.return_value = mock_response(
+        json_data={"Value": "invalid%"}
+    )
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamResponseError) as exc_info:
+        await client.get_level(1)
+
+    assert "Invalid level value" in str(exc_info.value)
+    assert exc_info.value.raw_response == "invalid%"
+
+
+@pytest.mark.asyncio
+async def test_set_timer_connection_error(mock_session):
+    """Should raise QStreamConnectionError on POST connection failure."""
+    mock_session.post.side_effect = aiohttp.ClientConnectionError("Connection failed")
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamConnectionError) as exc_info:
+        await client.set_timer(30, 50)
+
+    assert "Cannot connect" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_set_timer_http_error(mock_session):
+    """Should raise QStreamConnectionError on POST HTTP error."""
+    error = aiohttp.ClientResponseError(
+        request_info=None,
+        history=None,
+        status=500
+    )
+    mock_session.post.side_effect = error
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamConnectionError) as exc_info:
+        await client.set_timer(30, 50)
+
+    assert "HTTP 500" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_set_timer_timeout(mock_session):
+    """Should raise QStreamTimeoutError on POST timeout."""
+    mock_session.post.side_effect = TimeoutError("Request timeout")
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamTimeoutError) as exc_info:
+        await client.set_timer(30, 50)
+
+    assert "timed out" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_set_timer_unexpected_error(mock_session):
+    """Should raise QStreamResponseError on POST unexpected error."""
+    mock_session.post.side_effect = ValueError("Unexpected issue")
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamResponseError) as exc_info:
+        await client.set_timer(30, 50)
+
+    assert "Unexpected error" in str(exc_info.value)
