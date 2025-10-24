@@ -1,5 +1,10 @@
 # QStream Python Library
 
+[![CI](https://github.com/bramd/qstream-python/actions/workflows/ci.yml/badge.svg)](https://github.com/bramd/qstream-python/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/bramd/qstream-python/branch/master/graph/badge.svg)](https://codecov.io/gh/bramd/qstream-python)
+[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Async Python library for controlling BUVA QStream 2.0 WiFi-enabled ventilation fans via their HTTP API.
 
 ## Features
