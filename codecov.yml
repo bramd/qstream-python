@@ -1,0 +1,23 @@
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  status:
+    project:
+      default:
+        target: 90%
+        threshold: 2%
+    patch:
+      default:
+        target: 80%
+
+comment:
+  layout: "reach,diff,flags,tree,footer"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+
+ignore:
+  - "tests/"
+  - "**/__init__.py"
