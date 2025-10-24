@@ -50,3 +50,127 @@ class QStreamClient:
     async def __aexit__(self, *args) -> None:
         """Async context manager exit."""
         await self.close()
+
+    async def _get_json(self, endpoint: str) -> dict:
+        """Make GET request and return JSON response.
+
+        Args:
+            endpoint: API endpoint path (e.g., "/Status")
+
+        Returns:
+            JSON response as dictionary
+
+        Raises:
+            QStreamConnectionError: Cannot connect to device
+            QStreamTimeoutError: Request timed out
+            QStreamResponseError: Invalid response format
+        """
+        if not self._session:
+            self._session = aiohttp.ClientSession()
+
+        url = f"{self._host}{endpoint}"
+
+        try:
+            async with self._session.get(url, timeout=self._timeout) as response:
+                response.raise_for_status()
+                return await response.json()
+        except aiohttp.ClientConnectionError as e:
+            raise QStreamConnectionError(f"Cannot connect to {url}") from e
+        except aiohttp.ClientResponseError as e:
+            raise QStreamConnectionError(
+                f"HTTP {e.status} error from {url}"
+            ) from e
+        except TimeoutError as e:
+            raise QStreamTimeoutError(f"Request to {url} timed out") from e
+        except Exception as e:
+            raise QStreamResponseError(f"Unexpected error: {e}") from e
+
+    async def get_status(self) -> QStreamStatus:
+        """Get current device status.
+
+        Returns:
+            Parsed status object
+
+        Raises:
+            QStreamConnectionError: Cannot connect to device
+            QStreamTimeoutError: Request timed out
+            QStreamResponseError: Invalid response format
+        """
+        data = await self._get_json("/Status")
+        raw_value = data.get("Value", "")
+        return parse_status(raw_value)
+
+    async def get_air_quality(self) -> int:
+        """Get air quality index.
+
+        Returns:
+            Air quality index value
+
+        Raises:
+            QStreamConnectionError: Cannot connect to device
+            QStreamTimeoutError: Request timed out
+            QStreamResponseError: Invalid response format
+        """
+        data = await self._get_json("/AQI")
+        try:
+            return int(data.get("Value", "0"))
+        except (ValueError, TypeError) as e:
+            raise QStreamResponseError(
+                f"Invalid AQI value: {data}", raw_response=str(data)
+            ) from e
+
+    async def get_nominal_flow(self) -> str:
+        """Get nominal flow rate.
+
+        Returns:
+            Nominal flow rate as percentage string (e.g., "70%")
+
+        Raises:
+            QStreamConnectionError: Cannot connect to device
+            QStreamTimeoutError: Request timed out
+        """
+        data = await self._get_json("/Qnom")
+        return data.get("Value", "0%")
+
+    async def get_datetime(self) -> datetime:
+        """Get device date and time.
+
+        Returns:
+            Device datetime
+
+        Raises:
+            QStreamConnectionError: Cannot connect to device
+            QStreamTimeoutError: Request timed out
+            QStreamResponseError: Invalid datetime format
+        """
+        data = await self._get_json("/DateTime")
+        dt_string = data.get("Value", "")
+        try:
+            return datetime.strptime(dt_string, "%d/%m/%Y %H:%M:%S")
+        except ValueError as e:
+            raise QStreamResponseError(
+                f"Invalid datetime format: {dt_string}", raw_response=dt_string
+            ) from e
+
+    async def get_level(self, index: int) -> int:
+        """Get preset level percentage.
+
+        Args:
+            index: Level index (1-4)
+
+        Returns:
+            Level percentage (0-100)
+
+        Raises:
+            QStreamConnectionError: Cannot connect to device
+            QStreamTimeoutError: Request timed out
+            QStreamResponseError: Invalid response format
+        """
+        data = await self._get_json(f"/Levels?index={index}")
+        value_str = data.get("Value", "0%")
+        try:
+            return int(value_str.rstrip("%"))
+        except ValueError as e:
+            raise QStreamResponseError(
+                f"Invalid level value: {value_str}", raw_response=value_str
+            ) from e
