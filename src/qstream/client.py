@@ -174,3 +174,72 @@ class QStreamClient:
             raise QStreamResponseError(
                 f"Invalid level value: {value_str}", raw_response=value_str
             ) from e
+
+    async def _post_json(self, endpoint: str, data: dict) -> dict:
+        """Make POST request with JSON body.
+
+        Args:
+            endpoint: API endpoint path (e.g., "/Timer")
+            data: JSON data to send
+
+        Returns:
+            JSON response as dictionary
+
+        Raises:
+            QStreamConnectionError: Cannot connect to device
+            QStreamTimeoutError: Request timed out
+            QStreamResponseError: Invalid response format
+        """
+        if not self._session:
+            self._session = aiohttp.ClientSession()
+
+        url = f"{self._host}{endpoint}"
+
+        try:
+            async with self._session.post(
+                url, json=data, timeout=self._timeout
+            ) as response:
+                response.raise_for_status()
+                return await response.json()
+        except aiohttp.ClientConnectionError as e:
+            raise QStreamConnectionError(f"Cannot connect to {url}") from e
+        except aiohttp.ClientResponseError as e:
+            raise QStreamConnectionError(
+                f"HTTP {e.status} error from {url}"
+            ) from e
+        except TimeoutError as e:
+            raise QStreamTimeoutError(f"Request to {url} timed out") from e
+        except Exception as e:
+            raise QStreamResponseError(f"Unexpected error: {e}") from e
+
+    async def set_timer(
+        self,
+        duration_minutes: int,
+        speed_percentage: int,
+        demand_control: bool = False,
+    ) -> None:
+        """Set timer with specified duration and speed.
+
+        Args:
+            duration_minutes: Timer duration (0 to cancel timer)
+            speed_percentage: Fan speed percentage (0-100)
+            demand_control: Enable demand control (responds to AQI)
+
+        Raises:
+            QStreamConnectionError: Cannot connect to device
+            QStreamTimeoutError: Request timed out
+        """
+        demand = "ON" if demand_control else "OFF"
+        # Mode doesn't matter for timer command, use NIGHT as default
+        command = f"TIMER {duration_minutes} MIN {speed_percentage}% DEMAND CONTROL {demand} NIGHT"
+
+        await self._post_json("/Timer", {"Value": command})
+
+    async def cancel_timer(self) -> None:
+        """Cancel active timer.
+
+        Raises:
+            QStreamConnectionError: Cannot connect to device
+            QStreamTimeoutError: Request timed out
+        """
+        await self._post_json("/Timer", {"Value": "TIMER 0 MIN"})

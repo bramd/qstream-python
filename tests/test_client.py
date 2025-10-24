@@ -121,3 +121,52 @@ async def test_get_level_success(mock_session, mock_response):
     mock_session.get.assert_called_once_with(
         "http://192.168.1.100/Levels?index=1", timeout=client._timeout
     )
+
+
+@pytest.mark.asyncio
+async def test_set_timer_success(mock_session, mock_response):
+    """set_timer should post timer command."""
+    mock_session.post.return_value.__aenter__.return_value = mock_response(
+        json_data={"Value": "TIMER 30 MIN 50% DEMAND CONTROL OFF NIGHT"}
+    )
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+    await client.set_timer(duration_minutes=30, speed_percentage=50)
+
+    mock_session.post.assert_called_once()
+    call_args = mock_session.post.call_args
+    assert call_args[0][0] == "http://192.168.1.100/Timer"
+    assert "TIMER 30 MIN 50%" in call_args[1]["json"]["Value"]
+    assert "DEMAND CONTROL OFF" in call_args[1]["json"]["Value"]
+
+
+@pytest.mark.asyncio
+async def test_set_timer_with_demand_control(mock_session, mock_response):
+    """set_timer should support demand control parameter."""
+    mock_session.post.return_value.__aenter__.return_value = mock_response(
+        json_data={"Value": "TIMER 15 MIN 75% DEMAND CONTROL ON NIGHT"}
+    )
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+    await client.set_timer(
+        duration_minutes=15, speed_percentage=75, demand_control=True
+    )
+
+    call_args = mock_session.post.call_args
+    assert "DEMAND CONTROL ON" in call_args[1]["json"]["Value"]
+
+
+@pytest.mark.asyncio
+async def test_cancel_timer_success(mock_session, mock_response):
+    """cancel_timer should post timer 0 command."""
+    mock_session.post.return_value.__aenter__.return_value = mock_response(
+        json_data={"Value": "TIMER 0 MIN"}
+    )
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+    await client.cancel_timer()
+
+    mock_session.post.assert_called_once()
+    call_args = mock_session.post.call_args
+    assert call_args[0][0] == "http://192.168.1.100/Timer"
+    assert call_args[1]["json"]["Value"] == "TIMER 0 MIN"
