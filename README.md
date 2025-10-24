@@ -65,11 +65,11 @@ client = QStreamClient(
 
 #### Read Operations
 
-- `await client.get_status()` ’ `QStreamStatus` - Complete device status
-- `await client.get_air_quality()` ’ `int` - Air quality index
-- `await client.get_nominal_flow()` ’ `str` - Nominal flow rate (e.g., "70%")
-- `await client.get_datetime()` ’ `datetime` - Device date/time
-- `await client.get_level(index)` ’ `int` - Preset level percentage (index 1-4)
+- `await client.get_status()` -> `QStreamStatus` - Complete device status
+- `await client.get_air_quality()` -> `int` - Air quality index
+- `await client.get_nominal_flow()` -> `str` - Nominal flow rate (e.g., "70%")
+- `await client.get_datetime()` -> `datetime` - Device date/time
+- `await client.get_level(index)` -> `int` - Preset level percentage (index 1-4)
 
 #### Write Operations
 
