@@ -170,3 +170,44 @@ async def test_cancel_timer_success(mock_session, mock_response):
     call_args = mock_session.post.call_args
     assert call_args[0][0] == "http://192.168.1.100/Timer"
     assert call_args[1]["json"]["Value"] == "TIMER 0 MIN"
+
+
+@pytest.mark.asyncio
+async def test_get_status_connection_error(mock_session):
+    """Should raise QStreamConnectionError on connection failure."""
+    mock_session.get.side_effect = aiohttp.ClientConnectionError("Connection failed")
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamConnectionError) as exc_info:
+        await client.get_status()
+
+    assert "Cannot connect" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_get_status_timeout_error(mock_session):
+    """Should raise QStreamTimeoutError on timeout."""
+    mock_session.get.side_effect = TimeoutError("Request timeout")
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamTimeoutError) as exc_info:
+        await client.get_status()
+
+    assert "timed out" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_get_status_invalid_json(mock_session, mock_response):
+    """Should raise QStreamResponseError on invalid status format."""
+    mock_session.get.return_value.__aenter__.return_value = mock_response(
+        json_data={"Value": "INVALID FORMAT"}
+    )
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+
+    with pytest.raises(QStreamResponseError) as exc_info:
+        await client.get_status()
+
+    assert exc_info.value.raw_response == "INVALID FORMAT"
