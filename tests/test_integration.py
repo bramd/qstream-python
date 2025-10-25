@@ -37,10 +37,10 @@ async def test_get_air_quality_real_device(device_ip):
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_get_levels_real_device(device_ip):
-    """Test get_level for all preset levels."""
+    """Test get_level for all preset levels (0-4)."""
     async with QStreamClient(device_ip) as client:
         levels = {}
-        for i in range(1, 5):
+        for i in range(0, 5):
             level = await client.get_level(i)
             assert isinstance(level, int)
             assert 0 <= level <= 100

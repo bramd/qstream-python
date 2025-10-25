@@ -124,6 +124,23 @@ async def test_get_level_success(mock_session, mock_response):
 
 
 @pytest.mark.asyncio
+async def test_get_level_zero(mock_session, mock_response):
+    """get_level should support level 0 (minimum continuous ventilation)."""
+    mock_session.get.return_value.__aenter__.return_value = mock_response(
+        json_data={"Value": "25%"}
+    )
+
+    client = QStreamClient("192.168.1.100", session=mock_session)
+    level = await client.get_level(0)
+
+    assert level == 25
+    assert isinstance(level, int)
+    mock_session.get.assert_called_once_with(
+        "http://192.168.1.100/Levels?index=0", timeout=client._timeout
+    )
+
+
+@pytest.mark.asyncio
 async def test_set_timer_success(mock_session, mock_response):
     """set_timer should post timer command."""
     mock_session.post.return_value.__aenter__.return_value = mock_response(
