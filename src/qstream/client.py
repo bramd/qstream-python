@@ -156,7 +156,7 @@ class QStreamClient:
         """Get preset level percentage.
 
         Args:
-            index: Level index (1-4)
+            index: Level index (0-4)
 
         Returns:
             Level percentage (0-100)
