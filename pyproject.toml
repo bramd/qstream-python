@@ -1,6 +1,6 @@
 [project]
 name = "qstream"
-version = "0.1.0"
+version = "0.2.0"
 description = "Async Python library for BUVA QStream 2.0 ventilation fan control"
 readme = "README.md"
 license = { text = "MIT" }
